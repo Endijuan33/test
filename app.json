@@ -14,13 +14,21 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "platforms": ["android", "ios"],
+    "platforms": [
+      "android",
+      "ios"
+    ],
     "android": {
       "package": "com.konterapp.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "07b129e3-58be-4a62-b00a-f179315e7382"
       }
     }
   }
