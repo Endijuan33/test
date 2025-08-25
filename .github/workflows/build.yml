@@ -25,11 +25,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build APK
-        run: eas build --platform android --non-interactive
+      - name: Build APK with EAS
+        id: eas-build
+        run: |
+          # Jalankan build di Expo EAS
+          eas build --platform android --non-interactive --json > build-output.json
+          
+          # Ambil URL download APK terakhir
+          DOWNLOAD_URL=$(jq -r '.[0].artifacts.buildUrl' build-output.json)
+          echo "DOWNLOAD_URL=$DOWNLOAD_URL" >> $GITHUB_ENV
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Download APK from Expo
+        run: |
+          mkdir -p build-apk
+          curl -L "$DOWNLOAD_URL" -o build-apk/app.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: konter-app-apk
-          path: ./build/**/*.apk
+          path: build-apk/app.apk
