@@ -26,7 +26,7 @@ jobs:
         run: npm ci
 
       - name: Expo Prebuild
-        run: npx expo prebuild --clean --no-install
+        run: npx expo prebuild --clean
 
       - name: Patch Android SDK versions
         run: |
