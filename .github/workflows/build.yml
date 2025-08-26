@@ -25,16 +25,47 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run expo prebuild
+      - name: Fix Android configuration before prebuild
+        run: |
+          # Pastikan folder android ada atau buat struktur dasar
+          if [ ! -d "android" ]; then
+            npx expo prebuild --clean --no-install
+          fi
+
+          # Perbaiki settings.gradle untuk autolinking
+          if [ -f "android/settings.gradle" ]; then
+            # Hapus konten lama dan tambahkan autolinking yang benar
+            cat > android/settings.gradle << 'EOL'
+            rootProject.name = 'YourAppName'
+            apply from: new File(["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle")
+            useExpoModules()
+            include ':app'
+            EOL
+          fi
+
+      - name: Run expo prebuild with fixes
         run: |
           npx expo prebuild --clean
-          # Pastikan autolinking berhasil dengan memeriksa settings.gradle
-          if [ -f "android/settings.gradle" ]; then
-            echo "✅ Prebuild berhasil - folder android dibuat"
-          else
-            echo "❌ Prebuild gagal - folder android tidak dibuat"
-            exit 1
+          
+          # Pastikan compileSdkVersion dan targetSdkVersion diatur ke 35
+          if [ -f "android/app/build.gradle" ]; then
+            sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle
+            sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle
           fi
+
+          if [ -f "android/build.gradle" ]; then
+            sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/build.gradle
+            sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/build.gradle
+          fi
+
+      - name: Verify Android configuration
+        run: |
+          echo "=== settings.gradle content ==="
+          cat android/settings.gradle
+          echo "=== app/build.gradle content ==="
+          cat android/app/build.gradle | grep -E "(compileSdkVersion|targetSdkVersion)"
+          echo "=== build.gradle content ==="
+          cat android/build.gradle | grep -E "(compileSdkVersion|targetSdkVersion)"
 
       - name: Build APK with EAS
         run: |
@@ -48,7 +79,7 @@ jobs:
             exit 1
           fi
         env:
-          EXPO_TOKEN: ${{ secrets.TEST }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Download APK from Expo
         run: |
