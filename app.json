@@ -30,6 +30,9 @@
       "eas": {
         "projectId": "07b129e3-58be-4a62-b00a-f179315e7382"
       }
+    },
+    "ios": {
+      "bundleIdentifier": "com.konterapp.app"
     }
   }
 }
