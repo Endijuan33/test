@@ -25,54 +25,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Get Android package name
-        id: package_name
-        run: |
-          # Ekstrak nama package dari app.json atau app.config.js
-          if [ -f "app.json" ]; then
-            PACKAGE_NAME=$(node -e "console.log(require('./app.json').expo.android.package || '')")
-          elif [ -f "app.config.js" ]; then
-            PACKAGE_NAME=$(node -e "console.log(require('./app.config.js').default.expo.android.package || '')")
-          fi
-          
-          # Jika tidak ditemukan, gunakan default
-          if [ -z "$PACKAGE_NAME" ]; then
-            echo "Package name not found, using default"
-            PACKAGE_NAME="com.example.app"
-          fi
-          
-          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
-
       - name: Run expo prebuild
         run: npx expo prebuild --clean
 
-      - name: Fix Android autolinking and configuration
-        run: |
-          # Pastikan settings.gradle memiliki autolinking yang benar
-          echo "rootProject.name = '$PACKAGE_NAME'" > android/settings.gradle
-          echo 'apply from: new File(["node", "--print", "require.resolve('\''expo/package.json'\'')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle")" >> android/settings.gradle
-          echo "useExpoModules()" >> android/settings.gradle
-          echo "include ':app'" >> android/settings.gradle
-
-          # Pastikan compileSdkVersion dan targetSdkVersion diatur ke 35
-          sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle
-          sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle
-          
-          # Tambahkan buildTypes jika tidak ada
-          if ! grep -q "buildTypes" android/app/build.gradle; then
-            echo "" >> android/app/build.gradle
-            echo "android {" >> android/app/build.gradle
-            echo "    buildTypes {" >> android/app/build.gradle
-            echo "        release {" >> android/app/build.gradle
-            echo "            minifyEnabled true" >> android/app/build.gradle
-            echo "            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'" >> android/app/build.gradle
-            echo "        }" >> android/app/build.gradle
-            echo "        debug {" >> android/app/build.gradle
-            echo "            minifyEnabled false" >> android/app/build.gradle
-            echo "        }" >> android/app/build.gradle
-            echo "    }" >> android/app/build.gradle
-            echo "}" >> android/app/build.gradle
-          fi
+      - name: Fix Android configuration
+        run: node scripts/fix-android-config.js
 
       - name: Verify Android configuration
         run: |
@@ -97,7 +54,7 @@ jobs:
             exit 1
           fi
         env:
-          EXPO_TOKEN: ${{ secrets.TEST }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Download APK from Expo
         run: |
@@ -107,5 +64,5 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: konter-app-apk
+          name: app-apk
           path: build-apk/app.apk
