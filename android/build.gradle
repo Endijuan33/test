@@ -6,10 +6,9 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    // Terapkan versi terbaru plugin untuk 2025
-    classpath("com.android.tools.build:gradle:8.12") // Android Gradle Plugin terbaru
-    classpath("com.facebook.react:react-native-gradle-plugin:0.81.0") // React Native Gradle Plugin terbaru
-    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.20-RC") // Kotlin Gradle Plugin terbaru
+    classpath('com.android.tools.build:gradle')
+    classpath('com.facebook.react:react-native-gradle-plugin')
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
   }
 }
 
