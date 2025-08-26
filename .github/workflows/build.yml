@@ -1,30 +1,56 @@
 name: Build APK (Expo EAS)
 
-on:                                                                               push:
+on:
+  push:
     branches: [main]
 
-jobs:                                                                             build:
-    name: Build APK                                                                 runs-on: ubuntu-latest
-                                                                                    steps:
-      - name: Checkout code                                                             uses: actions/checkout@v4
-                                                                                      - name: Setup Node.js                                                             uses: actions/setup-node@v4                                                     with:
-          node-version: '20'                                                              cache: 'npm'
-                                                                                      - name: Install EAS CLI                                                           run: npm install -g eas-cli@latest                                      
-      - name: Install dependencies                                                      run: npm ci
-                                                                                      - name: Expo Prebuild
-        run: npx expo prebuild --clean --no-install                             
-      - name: Patch Android SDK versions                                                run: |
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Expo Prebuild
+        run: npx expo prebuild --clean --no-install
+
+      - name: Patch Android SDK versions
+        run: |
           sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/build.gradle || true
           sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/build.gradle || true
           sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle || true
-          sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle || true                                                                                                                                                   - name: Build APK with EAS
-        run: |                                                                            eas build --platform android --non-interactive --json > build-output.json                                                                                       BUILD_STATUS=$(jq -r '.[0].status' build-output.json)
-          DOWNLOAD_URL=$(jq -r '.[0].artifacts.buildUrl' build-output.json)               echo "DOWNLOAD_URL=$DOWNLOAD_URL" >> $GITHUB_ENV
-          if [ "$BUILD_STATUS" != "finished" ]; then                                        echo "Build failed with status: $BUILD_STATUS"
-            exit 1                                                                        fi
-        env:                                                                              EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-                                                                                      - name: Download APK from Expo
-        run: |                                                                            mkdir -p build-apk
+          sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle || true
+
+      - name: Build APK with EAS
+        run: |
+          eas build --platform android --non-interactive --json > build-output.json
+          BUILD_STATUS=$(jq -r '.[0].status' build-output.json)
+          DOWNLOAD_URL=$(jq -r '.[0].artifacts.buildUrl' build-output.json)
+          echo "DOWNLOAD_URL=$DOWNLOAD_URL" >> $GITHUB_ENV
+          if [ "$BUILD_STATUS" != "finished" ]; then
+            echo "Build failed with status: $BUILD_STATUS"
+            exit 1
+          fi
+        env:
+          EXPO_TOKEN: ${{ secrets.TEST }}
+
+      - name: Download APK from Expo
+        run: |
+          mkdir -p build-apk
           curl -L "$DOWNLOAD_URL" -o build-apk/app.apk
 
       - name: Upload APK Artifact
