@@ -36,16 +36,17 @@ jobs:
           if [ -f "android/settings.gradle" ]; then
             # Hapus konten lama dan tambahkan autolinking yang benar
             cat > android/settings.gradle << 'EOL'
-            rootProject.name = 'YourAppName'
-            apply from: new File(["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle")
-            useExpoModules()
-            include ':app'
-            EOL
+rootProject.name = 'test'
+apply from: new File(["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle")
+useExpoModules()
+include ':app'
+EOL
           fi
 
       - name: Run expo prebuild with fixes
         run: |
           npx expo prebuild --clean
+          
           # Pastikan compileSdkVersion dan targetSdkVersion diatur ke 35
           if [ -f "android/app/build.gradle" ]; then
             sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle
@@ -62,9 +63,9 @@ jobs:
           echo "=== settings.gradle content ==="
           cat android/settings.gradle
           echo "=== app/build.gradle content ==="
-          cat android/app/build.gradle | grep -E "(compileSdkVersion|targetSdkVersion)"
+          grep -E "(compileSdkVersion|targetSdkVersion)" android/app/build.gradle || true
           echo "=== build.gradle content ==="
-          cat android/build.gradle | grep -E "(compileSdkVersion|targetSdkVersion)"
+          grep -E "(compileSdkVersion|targetSdkVersion)" android/build.gradle || true
 
       - name: Build APK with EAS
         run: |
