@@ -25,29 +25,42 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Fix Android configuration before prebuild
+      - name: Get Android package name
+        id: package_name
         run: |
-          # Pastikan folder android ada atau buat struktur dasar
+          # Ekstrak nama package dari app.json atau app.config.js
+          if [ -f "app.json" ]; then
+            PACKAGE_NAME=$(node -e "console.log(require('./app.json').expo.android.package)")
+          elif [ -f "app.config.js" ]; then
+            PACKAGE_NAME=$(node -e "console.log(require('./app.config.js').default.expo.android.package)")
+          else
+            echo "No app.json or app.config.js found"
+            exit 1
+          fi
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
+
+      - name: Fix Android configuration
+        run: |
+          # Jalankan prebuild jika folder android tidak ada
           if [ ! -d "android" ]; then
             npx expo prebuild --clean --no-install
           fi
 
-          # Perbaiki settings.gradle untuk autolinking
+          # Perbaiki settings.gradle dengan nama package yang benar
           if [ -f "android/settings.gradle" ]; then
-            # Hapus konten lama dan tambahkan autolinking yang benar
-            cat > android/settings.gradle << 'EOL'
-rootProject.name = 'test'
+            cat > android/settings.gradle << EOL
+rootProject.name = '${{ env.PACKAGE_NAME }}'
 apply from: new File(["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle")
 useExpoModules()
 include ':app'
 EOL
           fi
 
-      - name: Run expo prebuild with fixes
+      - name: Run expo prebuild
+        run: npx expo prebuild --clean
+
+      - name: Patch Android SDK versions
         run: |
-          npx expo prebuild --clean
-          
-          # Pastikan compileSdkVersion dan targetSdkVersion diatur ke 35
           if [ -f "android/app/build.gradle" ]; then
             sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle
             sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle
@@ -64,8 +77,6 @@ EOL
           cat android/settings.gradle
           echo "=== app/build.gradle content ==="
           grep -E "(compileSdkVersion|targetSdkVersion)" android/app/build.gradle || true
-          echo "=== build.gradle content ==="
-          grep -E "(compileSdkVersion|targetSdkVersion)" android/build.gradle || true
 
       - name: Build APK with EAS
         run: |
