@@ -25,24 +25,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Expo Prebuild
-        run: npx expo prebuild --clean
-
-      - name: Patch Android SDK versions
+      - name: Run expo prebuild
         run: |
-          sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/build.gradle || true
-          sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/build.gradle || true
-          sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle || true
-          sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle || true
+          npx expo prebuild --clean
+          # Pastikan autolinking berhasil dengan memeriksa settings.gradle
+          if [ -f "android/settings.gradle" ]; then
+            echo "✅ Prebuild berhasil - folder android dibuat"
+          else
+            echo "❌ Prebuild gagal - folder android tidak dibuat"
+            exit 1
+          fi
 
       - name: Build APK with EAS
         run: |
-          eas build --platform android --non-interactive --json > build-output.json
+          eas build --platform android --non-interactive --profile production --json > build-output.json
           BUILD_STATUS=$(jq -r '.[0].status' build-output.json)
           DOWNLOAD_URL=$(jq -r '.[0].artifacts.buildUrl' build-output.json)
           echo "DOWNLOAD_URL=$DOWNLOAD_URL" >> $GITHUB_ENV
           if [ "$BUILD_STATUS" != "finished" ]; then
             echo "Build failed with status: $BUILD_STATUS"
+            cat build-output.json
             exit 1
           fi
         env:
