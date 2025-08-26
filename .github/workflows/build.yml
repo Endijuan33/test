@@ -44,7 +44,7 @@ jobs:
 
       - name: Build APK with EAS
         run: |
-          eas build --platform android --non-interactive --profile development --json > build-output.json
+          eas build --platform android --non-interactive --profile production --json > build-output.json
           BUILD_STATUS=$(jq -r '.[0].status' build-output.json)
           DOWNLOAD_URL=$(jq -r '.[0].artifacts.buildUrl' build-output.json)
           echo "DOWNLOAD_URL=$DOWNLOAD_URL" >> $GITHUB_ENV
