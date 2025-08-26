@@ -46,7 +46,6 @@ jobs:
       - name: Run expo prebuild with fixes
         run: |
           npx expo prebuild --clean
-
           # Pastikan compileSdkVersion dan targetSdkVersion diatur ke 35
           if [ -f "android/app/build.gradle" ]; then
             sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle
