@@ -33,6 +33,9 @@
     },
     "ios": {
       "bundleIdentifier": "com.konterapp.app"
-    }
+    },
+    "plugins": [
+      "expo-sqlite"
+    ]
   }
 }
