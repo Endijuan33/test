@@ -35,7 +35,7 @@ jobs:
             PACKAGE_NAME=$(node -e "console.log(require('./app.config.js').default.expo.android.package || '')")
           fi
           
-          # Jika tidak ditemukan, gunakan default atau gagalkan
+          # Jika tidak ditemukan, gunakan default
           if [ -z "$PACKAGE_NAME" ]; then
             echo "Package name not found, using default"
             PACKAGE_NAME="com.example.app"
@@ -49,12 +49,10 @@ jobs:
       - name: Fix Android autolinking and configuration
         run: |
           # Pastikan settings.gradle memiliki autolinking yang benar
-          cat > android/settings.gradle << EOL
-rootProject.name = '${{ env.PACKAGE_NAME }}'
-apply from: new File(["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle")
-useExpoModules()
-include ':app'
-EOL
+          echo "rootProject.name = '$PACKAGE_NAME'" > android/settings.gradle
+          echo 'apply from: new File(["node", "--print", "require.resolve('\''expo/package.json'\'')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle")" >> android/settings.gradle
+          echo "useExpoModules()" >> android/settings.gradle
+          echo "include ':app'" >> android/settings.gradle
 
           # Pastikan compileSdkVersion dan targetSdkVersion diatur ke 35
           sed -i 's/compileSdkVersion [0-9]\+/compileSdkVersion 35/' android/app/build.gradle
@@ -62,20 +60,18 @@ EOL
           
           # Tambahkan buildTypes jika tidak ada
           if ! grep -q "buildTypes" android/app/build.gradle; then
-            cat >> android/app/build.gradle << EOL
-
-android {
-    buildTypes {
-        release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-        debug {
-            minifyEnabled false
-        }
-    }
-}
-EOL
+            echo "" >> android/app/build.gradle
+            echo "android {" >> android/app/build.gradle
+            echo "    buildTypes {" >> android/app/build.gradle
+            echo "        release {" >> android/app/build.gradle
+            echo "            minifyEnabled true" >> android/app/build.gradle
+            echo "            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'" >> android/app/build.gradle
+            echo "        }" >> android/app/build.gradle
+            echo "        debug {" >> android/app/build.gradle
+            echo "            minifyEnabled false" >> android/app/build.gradle
+            echo "        }" >> android/app/build.gradle
+            echo "    }" >> android/app/build.gradle
+            echo "}" >> android/app/build.gradle
           fi
 
       - name: Verify Android configuration
@@ -91,7 +87,7 @@ EOL
 
       - name: Build APK with EAS
         run: |
-          eas build --platform android --non-interactive --profile development --json > build-output.json
+          eas build --platform android --non-interactive --profile production --json > build-output.json
           BUILD_STATUS=$(jq -r '.[0].status' build-output.json)
           DOWNLOAD_URL=$(jq -r '.[0].artifacts.buildUrl' build-output.json)
           echo "DOWNLOAD_URL=$DOWNLOAD_URL" >> $GITHUB_ENV
